@@ -1,29 +1,36 @@
-import MyLoans from "@/screens/MyLoans";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import DetailScreen from "../../screens/DetailScreen";
-import HomeScreen from "../../screens/HomeScreen";
-import LoanForm from "../../screens/LoanForm";
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthProvider'; // Import your AuthContext
 import LoginScreen from "../../screens/Login";
+import Register from "../../screens/Register";
+import TabNavigator from "./TabNavigator";
 
 export type RootStackParamList = {
-  Home: undefined;
-  Detail: undefined;
-  LoanProcess: undefined;
+  MainTabs: undefined;
   Login: undefined;
-  Loans: undefined;
+  Register: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  return (
-  <Stack.Navigator initialRouteName="Login">
-    <Stack.Screen name="Home" component={HomeScreen} />
-    <Stack.Screen name="Detail" component={DetailScreen} />
-    <Stack.Screen name="LoanProcess" component={LoanForm} />
-    <Stack.Screen name="Loans" component={MyLoans} />
-    <Stack.Screen name="Login" component={LoginScreen} />
-  </Stack.Navigator>
+  const { token } = useContext(AuthContext); // Get authentication state
 
+  return (
+    <Stack.Navigator 
+      initialRouteName={token ? "MainTabs" : "Login"} // Conditionally set initial route
+      screenOptions={{ headerShown: false }}
+    >
+      {token ? (
+        // Authenticated user - show main app with tabs
+        <Stack.Screen name="MainTabs" component={TabNavigator} />
+      ) : (
+        // Unauthenticated user - show auth screens
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Register" component={Register} />
+        </>
+      )}
+    </Stack.Navigator>
   );
 }

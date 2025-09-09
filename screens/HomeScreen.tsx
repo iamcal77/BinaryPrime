@@ -40,7 +40,7 @@ export default function HomeScreen() {
           ]}
           onPress={() => {
             setActiveTab("view");
-            navigation.navigate("Loans" as never); // <-- adjust screen name
+            navigation.navigate("MyLoans" as never); // <-- adjust screen name
           }}
         >
           <FontAwesome name="list-alt" size={18} color="blue" />

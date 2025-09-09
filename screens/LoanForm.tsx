@@ -69,7 +69,7 @@ const handleSubmit = async () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📄 Request a Loan</Text>
+      <Text style={styles.title}> Request a Loan</Text>
 
       <Text style={styles.label}>Loan Product</Text>
       <View style={styles.pickerWrapper}>

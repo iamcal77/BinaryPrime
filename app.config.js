@@ -1,14 +1,12 @@
 import "dotenv/config";
 
-console.log("Loaded API_BASE_URL:", process.env.API_BASE_URL);
-
 export default ({ config }) => ({
   ...config,
   name: "BinaryPrime",
   slug: "binaryprime",
   version: "1.0.0",
   orientation: "portrait",
-  icon: "./assets/images/icon.png",
+  icon: "https://i.pinimg.com/1200x/3f/43/1e/3f431ec1cd80c97a6619f10bda596c9e.jpg",
   scheme: "binaryprime",
   userInterfaceStyle: "automatic",
   extra: {
@@ -21,7 +19,7 @@ export default ({ config }) => ({
     package: "com.calvinrotich.binaryprime", // <-- Add this line
     ...config.android,
     adaptiveIcon: {
-      foregroundImage: "./assets/images/adaptive-icon.png",
+      foregroundImage: "https://i.pinimg.com/1200x/3f/43/1e/3f431ec1cd80c97a6619f10bda596c9e.jpg",
       backgroundColor: "#ffffff",
     },
     edgeToEdgeEnabled: true,
@@ -29,19 +27,21 @@ export default ({ config }) => ({
   ios: {
     ...config.ios,
     supportsTablet: true,
+    bundleIdentifier: "com.calvinrotich.binaryprime", // 👈 add this
+
   },
   web: {
     ...config.web,
     bundler: "metro",
     output: "static",
-    favicon: "./assets/images/favicon.png",
+    favicon: "https://i.pinimg.com/1200x/3f/43/1e/3f431ec1cd80c97a6619f10bda596c9e.jpg",
   },
   plugins: [
     "expo-router",
     [
       "expo-splash-screen",
       {
-        image: "./assets/images/splash-icon.png",
+        image: "https://i.pinimg.com/1200x/3f/43/1e/3f431ec1cd80c97a6619f10bda596c9e.jpg",
         imageWidth: 200,
         resizeMode: "contain",
         backgroundColor: "#ffffff",

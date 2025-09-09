@@ -3,17 +3,17 @@ import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import React, { useContext, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import { AuthContext } from "../context/AuthProvider";
 
-const API_BASE_URL = "https://localhost:7130"; // or from process.env if configured
+const API_BASE_URL = "https://loan-backened.onrender.com"; // or from process.env if configured
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
