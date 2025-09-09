@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.binaryprime"
+    namespace "com.calvinrotich.binaryprime"
     defaultConfig {
-        applicationId "com.binaryprime"
+        applicationId "com.calvinrotich.binaryprime"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
