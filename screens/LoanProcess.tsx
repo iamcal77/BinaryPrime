@@ -1,10 +1,10 @@
 // src/screens/LoanProcess.tsx
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    Pressable,
-    Text,
-    View,
+  ActivityIndicator,
+  Pressable,
+  Text,
+  View,
 } from "react-native";
 import Toast from "react-native-toast-message";
 import useVerification from "../hooks/useVerification";
@@ -37,14 +37,16 @@ export default function LoanProcess({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff", 
+ }}>
         <ActivityIndicator size="large" color="blue" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 24 }}>
+    <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 24, backgroundColor: "#fff", 
+ }}>
       <Text
         style={{
           fontSize: 20,
