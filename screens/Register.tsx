@@ -142,8 +142,19 @@ const pickDocument = async () => {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, backgroundColor: "#f9fafb" },
-  header: { fontSize: 28, fontWeight: "bold", marginBottom: 16, textAlign: "center" },
+  container: { 
+    flex: 1, 
+    justifyContent: "center",   // centers vertically
+    alignItems: "center",       // centers horizontally
+    padding: 16, 
+    backgroundColor: "#f9fafb"
+  },
+  header: { 
+    fontSize: 28, 
+    fontWeight: "bold", 
+    marginBottom: 16, 
+    textAlign: "center" 
+  },
   input: {
     borderWidth: 1,
     borderColor: "#d1d5db",
@@ -151,8 +162,15 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     backgroundColor: "#fff",
+    width: "100%",              // make input stretch full width
+    maxWidth: 400               // optional, prevents it from being too wide
   },
-  passwordContainer: { position: "relative", marginBottom: 12 },
+  passwordContainer: { 
+    position: "relative", 
+    marginBottom: 12, 
+    width: "100%", 
+    maxWidth: 400
+  },
   showButton: { position: "absolute", right: 12, top: 12 },
   uploadButton: {
     backgroundColor: "#e0f2fe",
@@ -160,10 +178,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: "center",
     marginBottom: 12,
+    width: "100%",
+    maxWidth: 400
   },
-  submitButton: { backgroundColor: "#2563eb", padding: 14, borderRadius: 8, alignItems: "center" },
+  submitButton: { 
+    backgroundColor: "#2563eb", 
+    padding: 14, 
+    borderRadius: 8, 
+    alignItems: "center",
+    width: "100%",
+    maxWidth: 400
+  },
   disabledButton: { backgroundColor: "#9ca3af" },
   submitText: { color: "#fff", fontWeight: "600" },
   loginLink: { color: "#2563eb", textAlign: "center", marginTop: 12 },
-  image: { width: "100%", height: 200, marginTop: 20 },
 });
+

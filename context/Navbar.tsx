@@ -1,16 +1,14 @@
-import { useRouter } from "expo-router";
-import { useState } from "react";
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Icon from "react-native-vector-icons/MaterialIcons";
-import { logout } from "./Logout";
+// components/Navbar.tsx
+import { useContext, useState } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { AuthContext } from '../context/AuthProvider';
+import { useNotifications } from '../hooks/useNotification';
+import ConfirmationModal from './ConfirmationModule';
+import MenuModal from './MenuModal';
+import NotificationModal from './NotifiactionModule';
+
 
 type NavbarProps = {
   onProfilePress?: () => void;
@@ -20,33 +18,50 @@ type NavbarProps = {
 export default function Navbar({ onProfilePress, onNotificationPress }: NavbarProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
-  const router = useRouter();
+  const [notificationModalVisible, setNotificationModalVisible] = useState(false);
+  const { logout } = useContext(AuthContext);
+  const { unreadCount, loading, notifications } = useNotifications();
 
   const handleLogout = async () => {
     setConfirmVisible(false);
-    await logout();
-    router.replace("/Login"); // ✅ navigate to login screen
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
+  const menuItems = [
+    {
+      label: 'Logout',
+      onPress: () => setConfirmVisible(true),
+      destructive: true,
+    },
+  ];
+
   return (
-    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.navbar}>
         <Text style={styles.title}>Binary Prime</Text>
 
         <View style={styles.iconsContainer}>
-          {/* Notification Icon with Badge */}
+          {/* 🔔 Notification Icon with Badge */}
           <TouchableOpacity
             style={styles.iconButton}
-            onPress={onNotificationPress}
+            onPress={() => setNotificationModalVisible(true)}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Icon name="notifications" size={24} color="#615f5fff" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
+            {!loading && unreadCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
 
-          {/* 3 dots (more options) */}
+          {/* ⋮ More Options */}
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => setMenuVisible(true)}
@@ -56,157 +71,78 @@ export default function Navbar({ onProfilePress, onNotificationPress }: NavbarPr
         </View>
       </View>
 
-      {/* Popup Menu */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={menuVisible}
-        onRequestClose={() => setMenuVisible(false)}
-      >
-        <Pressable
-          style={styles.modalOverlay}
-          onPress={() => setMenuVisible(false)}
-        >
-          <View style={styles.menu}>
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={() => {
-                setMenuVisible(false);
-                setConfirmVisible(true); // ✅ open confirmation modal
-              }}
-            >
-              <Text style={styles.menuText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
+      {/* Modals */}
+      <NotificationModal
+        visible={notificationModalVisible}
+        onClose={() => setNotificationModalVisible(false)}
+        notifications={notifications}
+        loading={loading}
+        unreadCount={unreadCount}
+      />
 
-      {/* Confirmation Modal */}
-      <Modal
-        transparent
-        animationType="fade"
+      <MenuModal
+        visible={menuVisible}
+        onClose={() => setMenuVisible(false)}
+        items={menuItems}
+      />
+
+      <ConfirmationModal
         visible={confirmVisible}
-        onRequestClose={() => setConfirmVisible(false)}
-      >
-        <View style={styles.confirmOverlay}>
-          <View style={styles.confirmBox}>
-            <Text style={styles.confirmText}>Are you sure you want to logout?</Text>
-            <View style={styles.confirmActions}>
-              <TouchableOpacity
-                style={[styles.confirmButton, { backgroundColor: "#e5e7eb" }]}
-                onPress={() => setConfirmVisible(false)}
-              >
-                <Text style={{ color: "#333" }}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.confirmButton, { backgroundColor: "#ef4444" }]}
-                onPress={handleLogout}
-              >
-                <Text style={{ color: "white" }}>Logout</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setConfirmVisible(false)}
+        onConfirm={handleLogout}
+        title="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: "#e9edf4ff",
+    backgroundColor: '#e9edf4ff',
   },
   navbar: {
     height: 60,
-    backgroundColor: "#e9edf4ff",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    backgroundColor: '#e9edf4ff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#d1d5db",
+    borderBottomColor: '#d1d5db',
   },
   title: {
-    color: "#343232ff",
+    color: '#343232ff',
     fontSize: 20,
-    fontWeight: "bold",
-    textAlign: "center",
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
   iconsContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 16,
   },
   iconButton: {
     padding: 4,
+    position: 'relative',
   },
   badge: {
-    position: "absolute",
+    position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: "#ef4444",
+    backgroundColor: '#ef4444',
     borderRadius: 10,
     minWidth: 18,
     height: 18,
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#e9edf4ff',
   },
   badgeText: {
-    color: "white",
+    color: 'white',
     fontSize: 10,
-    fontWeight: "bold",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "transparent",
-    justifyContent: "flex-start",
-    alignItems: "flex-end",
-    paddingTop: 60,
-    paddingRight: 16,
-  },
-  menu: {
-    backgroundColor: "white",
-    borderRadius: 6,
-    elevation: 4,
-    paddingVertical: 8,
-    minWidth: 120,
-  },
-  menuItem: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-  },
-  menuText: {
-    fontSize: 16,
-    color: "#333",
-  },
-  confirmOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  confirmBox: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 20,
-    width: "80%",
-    maxWidth: 300,
-  },
-  confirmText: {
-    fontSize: 16,
-    marginBottom: 16,
-    textAlign: "center",
-    color: "#333",
-  },
-  confirmActions: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  confirmButton: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 6,
-    marginHorizontal: 5,
-    alignItems: "center",
+    fontWeight: 'bold',
   },
 });

@@ -57,9 +57,9 @@ export default function LoginScreen() {
 
         const role = userResponse.data.role;
         if (role === "Admin") {
-          navigation.navigate("Home");
+          navigation.navigate("MainTabs", { screen: "Home" });
         } else {
-          navigation.navigate("Home");
+          navigation.navigate("MainTabs", { screen: "Home" });
         }
       }
     } catch (error: any) {
@@ -89,7 +89,7 @@ export default function LoginScreen() {
 
       <View style={styles.passwordContainer}>
         <TextInput
-          style={[styles.input, { flex: 1, marginBottom: 0 }]}
+          style={[styles.input, { flex: 1, marginBottom: 0,color: "#111827" }]}
           placeholder="Password"
           placeholderTextColor="#999"
           secureTextEntry={!showPassword}
@@ -151,6 +151,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: "#fff",
+    color: "#111827"
+
   },
   passwordContainer: {
     flexDirection: "row",

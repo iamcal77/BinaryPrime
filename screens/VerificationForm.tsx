@@ -1,15 +1,19 @@
-// src/screens/VerificationForm.tsx
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as DocumentPicker from "expo-document-picker";
-import React, { useState } from "react";
+import * as FileSystem from "expo-file-system";
+import React, { useContext, useState } from "react";
 import {
   Image,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import Toast from "react-native-toast-message";
+import { AuthContext } from "../context/AuthProvider";
 
 type Props = {
   onSubmit: (data: FormData) => Promise<void> | void;
@@ -17,6 +21,9 @@ type Props = {
 };
 
 export default function VerificationForm({ onSubmit, onCancel }: Props) {
+  const { token } = useContext(AuthContext);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -27,15 +34,57 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Format date for display
+  const formatDateForDisplay = (dateString: string) => {
+    if (!dateString) return "";
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return dateString; // Fallback to raw string if parsing fails
+    }
+  };
+
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["image/*", "application/pdf"],
+        copyToCacheDirectory: true,
       });
+
       if (result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        setForm((prev) => ({ ...prev, idDocument: file }));
-        if (file.mimeType?.startsWith("image/")) setPreview(file.uri);
+        let fileUri = file.uri;
+
+        if (Platform.OS !== "web" && fileUri.startsWith("data:")) {
+          // Native only: convert base64 → file://
+          const base64 = fileUri.split(",")[1];
+          const path = FileSystem.cacheDirectory + (file.name || "document.jpg");
+
+          await FileSystem.writeAsStringAsync(path, base64, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          fileUri = path;
+        }
+
+        const fixedFile = {
+          uri: fileUri,
+          type: file.mimeType || "application/octet-stream",
+          name: file.name || "document.jpg",
+        };
+
+        console.log("Fixed File Data:", fixedFile);
+        setForm((prev) => ({ ...prev, idDocument: fixedFile }));
+
+        if (fixedFile.type.startsWith("image/")) {
+          setPreview(fixedFile.uri);
+        }
       }
     } catch (err) {
       console.error("DocPicker error:", err);
@@ -62,29 +111,53 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
     setIsSubmitting(true);
     try {
       const payload = new FormData();
-      
-      // Use exact field names that match your backend DTO (case-sensitive!)
+
+      // Append fields
       payload.append("FirstName", form.firstName);
       payload.append("LastName", form.lastName);
       payload.append("DateOfBirth", form.dateOfBirth);
       payload.append("IdNumber", form.idNumber);
-      
-      // For the file, use the exact field name "IdDocument"
-      payload.append("IdDocument", {
-        uri: form.idDocument.uri,
-        type: form.idDocument.mimeType || "application/octet-stream",
-        name: form.idDocument.name || "document.jpg",
-      } as any);
 
-      console.log("Submitting verification with form data");
-      await onSubmit(payload);
-      
+      // Create Blob from file URI
+      const fileResponse = await fetch(form.idDocument.uri);
+      const blob = await fileResponse.blob();
+
+      // Add file to FormData
+      payload.append("IdDocument", blob, form.idDocument.name);
+
+      // Make request with full error handling
+      const uploadResponse = await fetch(
+        "https://loan-backened.onrender.com/api/Verification/upload-id",
+        {
+          method: "POST",
+          body: payload,
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        console.error("Upload failed:", errorData);
+        Toast.show({
+          type: "error",
+          text1: "Upload failed",
+          text2: errorData?.message || "Please try again later",
+        });
+        return;
+      }
+
+      const data = await uploadResponse.json();
+      console.log("Upload successful:", data);
+      await onSubmit(data);
     } catch (err) {
-      console.error("Submission error:", err);
+      console.error("Upload error:", err);
       Toast.show({
         type: "error",
         text1: "Error",
-        text2: "Submission failed. Please try again.",
+        text2: "Upload failed. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -92,7 +165,7 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Submit Verification</Text>
 
       <TextInput
@@ -107,13 +180,47 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
         value={form.lastName}
         onChangeText={(v) => setForm((p) => ({ ...p, lastName: v }))}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Date of Birth (YYYY-MM-DD)"
-        value={form.dateOfBirth}
-        onChangeText={(v) => setForm((p) => ({ ...p, dateOfBirth: v }))}
-        keyboardType="numeric"
-      />
+      
+      {/* Date of Birth Field */}
+      <Pressable style={styles.input} onPress={() => setShowDatePicker(true)}>
+        <Text style={{ color: form.dateOfBirth ? "#111827" : "#9ca3af" }}>
+          {form.dateOfBirth ? formatDateForDisplay(form.dateOfBirth) : "Select Date of Birth"}
+        </Text>
+      </Pressable>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={form.dateOfBirth ? new Date(form.dateOfBirth) : new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(Platform.OS === 'ios'); // Keep open on iOS, close on Android
+            if (selectedDate) {
+              // Convert to YYYY-MM-DD string for storage
+              const isoDate = selectedDate.toISOString().split("T")[0];
+              setForm((p) => ({ ...p, dateOfBirth: isoDate }));
+              
+              // Close picker on Android after selection
+              if (Platform.OS === 'android') {
+                setShowDatePicker(false);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* For iOS, add a Done button to close the picker */}
+      {Platform.OS === 'ios' && showDatePicker && (
+        <View style={styles.iosDatePickerActions}>
+          <Pressable 
+            style={styles.iosDoneButton}
+            onPress={() => setShowDatePicker(false)}
+          >
+            <Text style={styles.iosDoneButtonText}>Done</Text>
+          </Pressable>
+        </View>
+      )}
+
       <TextInput
         style={styles.input}
         placeholder="ID Number"
@@ -129,21 +236,19 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
       </Pressable>
 
       {preview && (
-        <Image 
-          source={{ uri: preview }} 
-          style={styles.preview} 
+        <Image
+          source={{ uri: preview }}
+          style={styles.preview}
           resizeMode="contain"
         />
       )}
 
       {form.idDocument && !preview && (
-        <Text style={styles.fileName}>
-          📄 {form.idDocument.name}
-        </Text>
+        <Text style={styles.fileName}>📄 {form.idDocument.name}</Text>
       )}
 
-      <Pressable 
-        style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]} 
+      <Pressable
+        style={[styles.submitBtn, isSubmitting && styles.submitBtnDisabled]}
         onPress={handleSubmit}
         disabled={isSubmitting}
       >
@@ -157,22 +262,22 @@ export default function VerificationForm({ onSubmit, onCancel }: Props) {
           <Text style={styles.cancelText}>Cancel</Text>
         </Pressable>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    padding: 20, 
-    backgroundColor: "#fff" 
+  container: {
+    flexGrow: 1,
+    padding: 20,
+    backgroundColor: "#fff",
   },
-  title: { 
-    fontSize: 22, 
-    fontWeight: "bold", 
-    marginBottom: 20, 
+  title: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 20,
     textAlign: "center",
-    color: "#1f2937"
+    color: "#1f2937",
   },
   input: {
     borderWidth: 1,
@@ -192,8 +297,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#d1d5db",
   },
-  uploadText: { 
-    color: "#374151", 
+  uploadText: {
+    color: "#374151",
     fontWeight: "500",
     fontSize: 16,
   },
@@ -221,19 +326,34 @@ const styles = StyleSheet.create({
   submitBtnDisabled: {
     backgroundColor: "#93c5fd",
   },
-  submitText: { 
-    color: "#fff", 
-    fontWeight: "bold", 
-    fontSize: 16 
+  submitText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   cancelBtn: {
     padding: 16,
     alignItems: "center",
     marginTop: 12,
   },
-  cancelText: { 
-    color: "#1f1e1eff", 
+  cancelText: {
+    color: "#1f1e1eff",
     fontWeight: "500",
     fontSize: 16,
+  },
+  iosDatePickerActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  iosDoneButton: {
+    padding: 10,
+    backgroundColor: '#2563eb',
+    borderRadius: 6,
+  },
+  iosDoneButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
 });

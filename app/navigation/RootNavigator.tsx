@@ -1,6 +1,7 @@
+// app/navigation/RootNavigator.tsx
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useContext } from 'react';
-import { AuthContext } from '../../context/AuthProvider'; // Import your AuthContext
+import { AuthContext } from '../../context/AuthProvider';
 import LoginScreen from "../../screens/Login";
 import Register from "../../screens/Register";
 import TabNavigator from "./TabNavigator";
@@ -14,15 +15,17 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { token } = useContext(AuthContext); // Get authentication state
+  const { token, loading } = useContext(AuthContext);
+
+  // Show a loading screen while checking authentication state
+  if (loading) {
+    return null; // Or a loading component
+  }
 
   return (
-    <Stack.Navigator 
-      initialRouteName={token ? "MainTabs" : "Login"} // Conditionally set initial route
-      screenOptions={{ headerShown: false }}
-    >
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       {token ? (
-        // Authenticated user - show main app with tabs
+        // Authenticated user - show main app
         <Stack.Screen name="MainTabs" component={TabNavigator} />
       ) : (
         // Unauthenticated user - show auth screens

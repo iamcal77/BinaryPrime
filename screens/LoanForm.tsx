@@ -8,10 +8,9 @@ import {
   TextInput,
   View
 } from "react-native";
-import Toast from "react-native-toast-message";
+import useLoan from "../hooks/useLoan";
 
-
-const API_BASE_URL ="https://loan-backened.onrender.com";
+const API_BASE_URL = "https://loan-backened.onrender.com";
 
 export default function LoanForm({ navigation }: any) {
   const [loan, setLoan] = useState({
@@ -21,55 +20,42 @@ export default function LoanForm({ navigation }: any) {
   });
   const [loanProducts, setLoanProducts] = useState<any[]>([]);
 
-useEffect(() => {
-  axios
-    .get(`${API_BASE_URL}/api/LoanProduct/products`)
-    .then((res) => {
-      console.log("API Response:", res.data);
-      const products = Array.isArray(res.data)
-        ? res.data
-        : res.data?.data || [];
-      setLoanProducts(products);
-    })
-    .catch((err) => {
-      console.error("Error fetching loan products", err);
-      setLoanProducts([]);
-    });
-}, []);
+  // useLoan hook
+  const { createLoan } = useLoan();
 
+  useEffect(() => {
+    axios
+      .get(`${API_BASE_URL}/api/LoanProduct/products`)
+      .then((res) => {
+        const products = Array.isArray(res.data)
+          ? res.data
+          : res.data?.data || [];
+        setLoanProducts(products);
+      })
+      .catch((err) => {
+        console.error("Error fetching loan products", err);
+        setLoanProducts([]);
+      });
+  }, []);
 
+  const handleSubmit = async () => {
+    if (!loan.loanProductId || !loan.amount) {
+      // validation only
+      return;
+    }
 
-const handleSubmit = async () => {
-  if (!loan.loanProductId || !loan.amount) {
-    Toast.show({
-      type: "error",
-      text1: "Missing Fields",
-      text2: "Please fill all fields",
+    await createLoan({
+      loanProductId: loan.loanProductId,
+      amount: Number(loan.amount),
+      status: "Pending",
     });
-    return;
-  }
 
-  try {
-    await axios.post(`${API_BASE_URL}/api/Loans/borrow`, loan);
-    Toast.show({
-      type: "success",
-      text1: "Success",
-      text2: "Loan request submitted!",
-    });
-    navigation.goBack();
-  } catch (err) {
-    console.error(err);
-    Toast.show({
-      type: "error",
-      text1: "Error",
-      text2: "Failed to request loan",
-    });
-  }
-};
+    navigation.goBack(); // hook already shows toast
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}> Request a Loan</Text>
+      <Text style={styles.title}>Request a Loan</Text>
 
       <Text style={styles.label}>Loan Product</Text>
       <View style={styles.pickerWrapper}>
@@ -79,10 +65,11 @@ const handleSubmit = async () => {
             setLoan((prev) => ({ ...prev, loanProductId: value }))
           }
           style={styles.picker}
+          dropdownIconColor="#111827"
         >
-          <Picker.Item label="Select a product..." value={null} />
+          <Picker.Item label="Select a product..." value={null} color="#374151" />
           {loanProducts.map((p) => (
-            <Picker.Item key={p.id} label={p.name} value={p.id} />
+            <Picker.Item key={p.id} label={p.name} value={p.id} color="#111827" />
           ))}
         </Picker>
       </View>
@@ -142,6 +129,7 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: "100%",
+    color: "#111827",
   },
   input: {
     borderWidth: 1,
@@ -164,10 +152,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitBtn: {
-    backgroundColor: "#21b93fff", // blue
+    backgroundColor: "#21b93fff",
   },
   cancelBtn: {
-    backgroundColor: "#6b7280", // gray
+    backgroundColor: "#6b7280",
   },
   buttonText: {
     color: "#fff",
