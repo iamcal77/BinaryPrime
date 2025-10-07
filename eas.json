@@ -14,10 +14,7 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "aab", 
-        
- 
-        "abiFilters": ["arm64-v8a", "armeabi-v7a"] 
+        "buildType": "app-bundle"
       }
     }
   },
