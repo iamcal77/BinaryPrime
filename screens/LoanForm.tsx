@@ -2,11 +2,12 @@ import { Picker } from "@react-native-picker/picker";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from "react-native";
 import useLoan from "../hooks/useLoan";
 
@@ -16,47 +17,69 @@ export default function LoanForm({ navigation }: any) {
   const [loan, setLoan] = useState({
     amount: "",
     loanProductId: null,
+    guarantorUserId: null,
     status: "Pending",
   });
-  const [loanProducts, setLoanProducts] = useState<any[]>([]);
 
-  // useLoan hook
+  const [loanProducts, setLoanProducts] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false); // 👈 added loading state
+
   const { createLoan } = useLoan();
 
   useEffect(() => {
-    axios
-      .get(`${API_BASE_URL}/api/LoanProduct/products`)
-      .then((res) => {
-        const products = Array.isArray(res.data)
-          ? res.data
-          : res.data?.data || [];
+    const fetchData = async () => {
+      try {
+        const [productsRes, usersRes] = await Promise.all([
+          axios.get(`${API_BASE_URL}/api/LoanProduct/products`),
+          axios.get(`${API_BASE_URL}/api/Users`),
+        ]);
+
+        const products = Array.isArray(productsRes.data)
+          ? productsRes.data
+          : productsRes.data?.data || [];
+        const userData = Array.isArray(usersRes.data)
+          ? usersRes.data
+          : usersRes.data?.data || [];
+
         setLoanProducts(products);
-      })
-      .catch((err) => {
-        console.error("Error fetching loan products", err);
-        setLoanProducts([]);
-      });
+        setUsers(userData);
+      } catch (err) {
+        console.error("Error fetching data", err);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const handleSubmit = async () => {
-    if (!loan.loanProductId || !loan.amount) {
-      // validation only
+    if (!loan.loanProductId || !loan.amount || !loan.guarantorUserId) {
+      alert("Please fill in all fields including the guarantor.");
       return;
     }
 
-    await createLoan({
-      loanProductId: loan.loanProductId,
-      amount: Number(loan.amount),
-      status: "Pending",
-    });
-
-    navigation.goBack(); // hook already shows toast
+    try {
+      setLoading(true); // start loading
+      await createLoan({
+        loanProductId: loan.loanProductId,
+        amount: Number(loan.amount),
+        guarantorUserIds: [loan.guarantorUserId],
+        status: "Pending",
+      });
+      navigation.goBack();
+    } catch (error) {
+      console.error("Loan creation failed:", error);
+      alert("Failed to request loan. Please try again.");
+    } finally {
+      setLoading(false); // stop loading
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Request a Loan</Text>
 
+      {/* Loan Product Picker */}
       <Text style={styles.label}>Loan Product</Text>
       <View style={styles.pickerWrapper}>
         <Picker
@@ -74,6 +97,25 @@ export default function LoanForm({ navigation }: any) {
         </Picker>
       </View>
 
+      {/* Guarantor Picker */}
+      <Text style={styles.label}>Select Guarantor</Text>
+      <View style={styles.pickerWrapper}>
+        <Picker
+          selectedValue={loan.guarantorUserId}
+          onValueChange={(value) =>
+            setLoan((prev) => ({ ...prev, guarantorUserId: value }))
+          }
+          style={styles.picker}
+          dropdownIconColor="#111827"
+        >
+          <Picker.Item label="Select guarantor..." value={null} color="#374151" />
+          {users.map((u) => (
+            <Picker.Item key={u.id} label={u.fullName} value={u.id} color="#111827" />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Loan Amount */}
       <Text style={styles.label}>Loan Amount</Text>
       <TextInput
         style={styles.input}
@@ -85,13 +127,22 @@ export default function LoanForm({ navigation }: any) {
       />
 
       <View style={styles.buttonRow}>
-        <Pressable style={[styles.button, styles.submitBtn]} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Request Loan</Text>
+        <Pressable
+          style={[styles.button, styles.submitBtn, loading && styles.disabledBtn]}
+          onPress={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Request Loan</Text>
+          )}
         </Pressable>
 
         <Pressable
           style={[styles.button, styles.cancelBtn]}
           onPress={() => navigation.goBack()}
+          disabled={loading}
         >
           <Text style={styles.buttonText}>Cancel</Text>
         </Pressable>
@@ -152,10 +203,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitBtn: {
-    backgroundColor: "#21b93fff",
+    backgroundColor: "#21b93f",
   },
   cancelBtn: {
     backgroundColor: "#6b7280",
+  },
+  disabledBtn: {
+    opacity: 0.7,
   },
   buttonText: {
     color: "#fff",
